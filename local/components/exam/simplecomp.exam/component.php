@@ -21,7 +21,7 @@ $IBLOCK_ID = intval($arParams["IBLOCK_ID"]);
 $IBLOCK_NEWS_ID = intval($arParams["IBLOCK_NEWS_ID"]);
 $IBLOCK_NEWS_CODE = intval($arParams["IBLOCK_NEWS_CODE"]);
 
-if($this->startResultCache(false, ($arParams["CACHE_GROUPS"]==="N"? false: $USER->GetGroups())))
+if($this->startResultCache(false, false))
 {
 	if(!Loader::includeModule("iblock"))
 	{
@@ -73,11 +73,13 @@ if($this->startResultCache(false, ($arParams["CACHE_GROUPS"]==="N"? false: $USER
 			$arItems["SECT_ITEMS"][] = $arFields;
 		}
 	}
-	$cnt = count($mas);
+	$arResult["CNT"] = count($mas);
 
-	$APPLICATION->SetTitle("В каталоге товаров представлено товаров: ".$cnt);
+
 
 	$this->setResultCacheKeys(array(
+		"CNT"
 	));
 	$this->includeComponentTemplate();
 }
+$APPLICATION->SetTitle("В каталоге товаров представлено товаров: ".$arResult["CNT"]);
