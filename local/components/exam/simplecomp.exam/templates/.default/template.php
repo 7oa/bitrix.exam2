@@ -13,8 +13,11 @@
 $this->setFrameMode(true);
 //prnt($arResult);
 ?>
-<?foreach($arResult["ITEMS"] as $arNews):?>
-    <div>
+<?foreach($arResult["ITEMS"] as $arNews):
+	$this->AddEditAction($arNews['ID'], $arNews['EDIT_LINK'], CIBlock::GetArrayByID($arNews["IBLOCK_ID"], "ELEMENT_EDIT"));
+	$this->AddDeleteAction($arNews['ID'], $arNews['DELETE_LINK'], CIBlock::GetArrayByID($arNews["IBLOCK_ID"], "ELEMENT_DELETE"), array("CONFIRM" => GetMessage('CT_BNL_ELEMENT_DELETE_CONFIRM')));
+	?>
+    <div id="<?=$this->GetEditAreaId($arNews['ID']);?>">
         <b><?=$arNews["NAME"]?></b> - <?=$arNews["DATE_ACTIVE_FROM"]?> (<?=implode(", ", $arNews["SECT_NAME"]);?>)
         <br>
         <?if($arNews["SECT_ITEMS"]):?>

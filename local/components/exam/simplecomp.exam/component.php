@@ -37,10 +37,22 @@ if($this->startResultCache(false, false))
 	while($ob = $res->GetNextElement())
 	{
 		$arFields = $ob->GetFields();
-		//prnt($arFields);
-		$arResult["ITEMS"][] = $arFields;
-	}
+		$arButtons = CIBlock::GetPanelButtons(
+			$IBLOCK_NEWS_ID,
+			$arFields["ID"],
+			0,
+			array("SECTION_BUTTONS"=>false, "SESSID"=>false)
+		);
 
+		$arItem = $arFields;
+
+		$arItem["IBLOCK_ID"] = $IBLOCK_NEWS_ID;
+		$arItem["EDIT_LINK"] = $arButtons["edit"]["edit_element"]["ACTION_URL"];
+		$arItem["DELETE_LINK"] = $arButtons["edit"]["delete_element"]["ACTION_URL"];
+
+
+		$arResult["ITEMS"][] = $arItem;
+	}
 
 	//разделы каталога
 	$arSelect = Array("ID", "NAME", $IBLOCK_NEWS_CODE);

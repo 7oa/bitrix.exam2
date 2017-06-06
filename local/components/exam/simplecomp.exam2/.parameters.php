@@ -30,6 +30,12 @@ $arComponentParameters = array(
 			"TYPE" => "STRING",
 			"DEFAULT" => "",
 		),
+		"NEWS_COUNT" => array(
+			"PARENT" => "BASE",
+			"NAME" => GetMessage("T_IBLOCK_DESC_LIST_CONT"),
+			"TYPE" => "STRING",
+			"DEFAULT" => "",
+		),
 		"CACHE_TIME"  =>  array("DEFAULT"=>36000000),
 		"CACHE_GROUPS" => array(
 			"PARENT" => "CACHE_SETTINGS",

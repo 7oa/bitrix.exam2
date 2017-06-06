@@ -8,7 +8,7 @@ $arComponentDescription = array(
 	"SORT" => 20,
 	"CACHE_PATH" => "Y",
 	"PATH" => array(
-		"ID" => "exam",
+		"ID" => "exam2",
 		"NAME" => GetMessage("T_IBLOCK_DESC_NEWS"),
 	),
 );

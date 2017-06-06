@@ -13,15 +13,36 @@ if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true) die();
 /** @global CIntranetToolbar $INTRANET_TOOLBAR */
 use Bitrix\Main\Loader;
 
+//prnt($arParams);
+
+//prnt($_GET);
+
 if(!isset($arParams["CACHE_TIME"]))
 	$arParams["CACHE_TIME"] = 36000000;
+
+
+if(isset($_GET["F"]))
+	$arParams["CACHE_TIME"] = 0;
 
 $IBLOCK_ID = intval($arParams["IBLOCK_ID"]);
 $IBLOCK_CLS_ID = intval($arParams["IBLOCK_CLS_ID"]);
 $IBLOCK_CLS_PROP = $arParams["IBLOCK_CLS_PROP"];
 $arParams["DETAIL_TEMPLATE"]=trim($arParams["DETAIL_TEMPLATE"]);
 
-if($this->startResultCache(false, ($arParams["CACHE_GROUPS"]==="N"? false: $USER->GetGroups())))
+//постраничная нави
+$arParams["NEWS_COUNT"] = intval($arParams["NEWS_COUNT"]);
+if($arParams["NEWS_COUNT"]<=0)
+	$arParams["NEWS_COUNT"] = 20;
+
+$arNavParams = Array(
+	"nPageSize"=>$arParams["NEWS_COUNT"],
+	"bShowAll"=>true,
+);
+$arNavigation = CDBResult::GetNavParams($arNavParams);
+
+//end постраничная нави
+
+if($this->startResultCache(false, array(($arParams["CACHE_GROUPS"]==="N"? false: $USER->GetGroups()), $arNavigation)))
 {
 	if(!Loader::includeModule("iblock"))
 	{
@@ -30,26 +51,47 @@ if($this->startResultCache(false, ($arParams["CACHE_GROUPS"]==="N"? false: $USER
 		return;
 	}
 
-	//классификатор
-	$arSelect = Array("ID", "NAME");
-	$arFilter = Array("IBLOCK_ID"=>IntVal($IBLOCK_CLS_ID), "ACTIVE_DATE"=>"Y", "ACTIVE"=>"Y", "CHECK_PERMISSIONS" => "Y");
-	$res = CIBlockElement::GetList(Array(), $arFilter, false, false, $arSelect);
-	while($ob = $res->GetNextElement())
-	{
-		$arFields = $ob->GetFields();
-		$arResult["ITEMS"][] = $arFields;
-	}
-
-
 	//товары
 	$arOrder = Array("name"=>"asc", "sort"=>"asc");
 	$arSelect = Array("ID", "NAME", "PROPERTY_PRICE", "DETAIL_PAGE_URL", "PROPERTY_MATERIAL", "PROPERTY_ARTNUMBER","PROPERTY_".$IBLOCK_CLS_PROP);
-	$arFilter = Array("IBLOCK_ID"=>IntVal($IBLOCK_ID), "GLOBAL_ACTIVE"=>"Y", "ACTIVE"=>"Y" , "CHECK_PERMISSIONS" => "Y", "!PROPERTY_".$IBLOCK_CLS_PROP=>false);
+
+	$filtr = array();
+	if(isset($_GET["F"])){
+		$filtr = array(
+			"LOGIC" => "OR",
+			array("<=PROPERTY_PRICE" => 1700, "PROPERTY_MATERIAL" => "Дерево, ткань"),
+			array("<PROPERTY_PRICE" => 1500, "PROPERTY_MATERIAL" => "Металл, пластик"),
+		);
+	}
+
+	$arFilter = Array(
+		"IBLOCK_ID"=>$IBLOCK_ID,
+		"GLOBAL_ACTIVE"=>"Y",
+		"ACTIVE"=>"Y" ,
+		"CHECK_PERMISSIONS" => "Y",
+		"!PROPERTY_".$IBLOCK_CLS_PROP=>false,
+		$filtr
+	);
+
+
+
 	$res = CIBlockElement::GetList($arOrder, $arFilter, false, false, $arSelect);
 	$res->SetUrlTemplates($arParams["DETAIL_TEMPLATE"]);
 	while($ob = $res->GetNextElement())
 	{
 		$arFields = $ob->GetFields();
+
+		$arButtons = CIBlock::GetPanelButtons(
+			$IBLOCK_ID,
+			$arFields["ID"],
+			0,
+			array("SECTION_BUTTONS"=>false, "SESSID"=>false)
+		);
+
+		$arItems[$arFields["ID"]]["IBLOCK_ID"] = $IBLOCK_ID;
+		$arItems[$arFields["ID"]]["EDIT_LINK"] = $arButtons["edit"]["edit_element"]["ACTION_URL"];
+		$arItems[$arFields["ID"]]["DELETE_LINK"] = $arButtons["edit"]["delete_element"]["ACTION_URL"];
+
 		$arItems[$arFields["ID"]]["ID"] = $arFields["ID"];
 		$arItems[$arFields["ID"]]["NAME"] = $arFields["NAME"];
 		$arItems[$arFields["ID"]]["PROPERTY_PRICE"] = $arFields["PROPERTY_PRICE_VALUE"];
@@ -60,9 +102,11 @@ if($this->startResultCache(false, ($arParams["CACHE_GROUPS"]==="N"? false: $USER
 	}
 
 
+
 	$f_key = reset(array_keys($arItems));
 	$min = $arItems[$f_key]["PROPERTY_PRICE"];
 	$max = $arItems[$f_key]["PROPERTY_PRICE"];
+	$allProdID = array();
 
 	foreach($arItems as $items){
 		if($items["PROPERTY_PRICE"]<$min){
@@ -73,7 +117,34 @@ if($this->startResultCache(false, ($arParams["CACHE_GROUPS"]==="N"? false: $USER
 			$arResult["MAX"] = $items["PROPERTY_PRICE"];
 			$max = $items["PROPERTY_PRICE"];
 		}
+		$allProdID = array_merge($allProdID,$items["PROPERTY_PROD"]);
 	}
+
+	$prodID = array_unique($allProdID);
+
+	//классификатор
+	$arSelect = Array("ID", "NAME");
+
+	$arFilter = Array(
+		"IBLOCK_ID"=>IntVal($IBLOCK_CLS_ID),
+		"ACTIVE_DATE"=>"Y",
+		"ACTIVE"=>"Y",
+		"ID" => $prodID,
+		"CHECK_PERMISSIONS" => "Y"
+	);
+
+
+
+	$res = CIBlockElement::GetList(Array(), $arFilter, false, $arNavParams, $arSelect);
+
+	while($ob = $res->GetNextElement())
+	{
+		$arFields = $ob->GetFields();
+		$arResult["ITEMS"][] = $arFields;
+	}
+	$arResult["NAV_STRING"] = $res->GetPageNavStringEx($navComponentObject, "", "", true); //постраничная
+
+
 
 	foreach($arResult["ITEMS"] as &$arItem){
 
